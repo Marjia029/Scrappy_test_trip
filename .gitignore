@@ -1,0 +1,54 @@
+# Byte-compiled files
+*.pyc
+*.pyo
+__pycache__/
+
+# Virtual environment
+venv/
+env/
+
+# Database files
+*.db
+*.sqlite3
+
+# Logs and temporary files
+*.log
+*.pot
+*.pid
+*.gz
+*.out
+*.bak
+*.swp
+*.tmp
+*.~*
+
+# Environment variables
+.env
+.env.*
+
+# IDE and editor settings
+.idea/
+.vscode/
+*.sublime-workspace
+*.sublime-project
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# Operating system files
+.DS_Store
+Thumbs.db
+
+# Docker
+*.pid
+docker-compose.override.yml
+
+# Selenium driver cache
+selenium-driver/
+
+# Other
+*.egg
+*.egg-info/
+dist/
+build/
+/images
