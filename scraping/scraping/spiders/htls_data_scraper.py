@@ -4,23 +4,11 @@ import re
 
 
 class ScraperSpider(scrapy.Spider):
-    name = "scraper"
+    name = "htls_scraper"
     allowed_domains = ["uk.trip.com"]
     start_urls = ["https://uk.trip.com/hotels/?locale=en-GB&curr=GBP"]
 
     def parse(self, response):
-        # Extract all h3 tags
-        h3_tags = response.css("h3::text").getall()
-        for h3 in h3_tags:
-            yield {"h3_text": h3}
-
-        # Extract all URLs (from <a> tags)
-        links = response.css("a::attr(href)").getall()
-        for link in links:
-            # Join relative URLs with the domain if necessary
-            full_url = response.urljoin(link)
-            yield {"url": full_url}
-
         # Extract and parse `window.IBU_HOTEL` data
         script_data = response.xpath("//script[contains(text(), 'window.IBU_HOTEL')]/text()").get()
         if script_data:
@@ -31,9 +19,13 @@ class ScraperSpider(scrapy.Spider):
                 try:
                     # Parse the JSON data
                     ibu_hotel_data = json.loads(json_data)
-                    # Save the data into a JSON file
-                    with open("ibu_hotel_data.json", "w", encoding="utf-8") as f:
-                        json.dump(ibu_hotel_data, f, ensure_ascii=False, indent=4)
-                    self.logger.info("Saved window.IBU_HOTEL data to ibu_hotel_data.json")
+                    
+                    # Extract `initData.htlsData`
+                    htls_data = ibu_hotel_data.get("initData", {}).get("htlsData", [])
+                    
+                    # Save the `htlsData` into a JSON file
+                    with open("htls_data.json", "w", encoding="utf-8") as f:
+                        json.dump(htls_data, f, ensure_ascii=False, indent=4)
+                    self.logger.info("Saved window.IBU_HOTEL.initData.htlsData to htls_data.json")
                 except json.JSONDecodeError as e:
                     self.logger.error(f"Failed to parse JSON: {e}")

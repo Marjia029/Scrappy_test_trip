@@ -52,3 +52,4 @@ selenium-driver/
 dist/
 build/
 /images
+/scraping/*.json
