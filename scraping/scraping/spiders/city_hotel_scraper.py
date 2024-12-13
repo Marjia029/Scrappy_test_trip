@@ -20,14 +20,17 @@ class RandomCityHotelsSpider(scrapy.Spider):
                 try:
                     # Parse the JSON data
                     ibu_hotel_data = json.loads(json_data)
+
+                    cities_to_search = ["inboundCities", "outboundCities"]
+
+                    random_search_city = random.choice(cities_to_search)
                     
                     # Extract `inboundCities` from `initData.htlsData`
-                    inbound_cities = ibu_hotel_data.get("initData", {}).get("htlsData", {}).get("outboundCities", [])
+                    searching_cities = ibu_hotel_data.get("initData", {}).get("htlsData", {}).get(random_search_city, [])
                     
                     # Randomly select a city with recommendHotels
                     valid_cities = [
-                        city for city in inbound_cities 
-                        if city.get("recommendHotels") and len(city.get("recommendHotels", [])) > 0
+                        city for city in searching_cities
                     ]
                     
                     if not valid_cities:
