@@ -34,13 +34,13 @@ AUTOTHROTTLE_MAX_DELAY = 10  # Maximum delay
 AUTOTHROTTLE_TARGET_CONCURRENCY = 1.0  # Requests per second
 
 
-DOWNLOAD_HANDLERS = {
-    "http": "scrapy_playwright.handler.ScrapyPlaywrightDownloadHandler",
-    "https": "scrapy_playwright.handler.ScrapyPlaywrightDownloadHandler",
-}
+# DOWNLOAD_HANDLERS = {
+#     "http": "scrapy_playwright.handler.ScrapyPlaywrightDownloadHandler",
+#     "https": "scrapy_playwright.handler.ScrapyPlaywrightDownloadHandler",
+# }
 
-PLAYWRIGHT_BROWSER_TYPE = "chromium"  # Can be "chromium", "firefox", or "webkit"
-PLAYWRIGHT_LAUNCH_OPTIONS = {"headless": True}
+# PLAYWRIGHT_BROWSER_TYPE = "chromium"  # Can be "chromium", "firefox", or "webkit"
+# PLAYWRIGHT_LAUNCH_OPTIONS = {"headless": True}
 
 
 # The download delay setting will honor only one of:
