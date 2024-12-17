@@ -1,12 +1,13 @@
-# Define here the models for your scraped items
-#
-# See documentation in:
-# https://docs.scrapy.org/en/latest/topics/items.html
-
 import scrapy
 
-
-class ScrapingItem(scrapy.Item):
-    # define the fields for your item here like:
-    # name = scrapy.Field()
-    pass
+class HotelItem(scrapy.Item):
+    city_name = scrapy.Field()
+    property_title = scrapy.Field()
+    hotel_id = scrapy.Field()
+    price = scrapy.Field()
+    rating = scrapy.Field()
+    address = scrapy.Field()
+    latitude = scrapy.Field()
+    longitude = scrapy.Field()
+    room_type = scrapy.Field()
+    image = scrapy.Field()

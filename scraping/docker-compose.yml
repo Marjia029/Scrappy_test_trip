@@ -1,0 +1,45 @@
+services:
+  scraper:
+    build: .
+    volumes:
+      - .:/usr/src/app  # Ensure the entire project directory is mounted
+      - ./images:/usr/src/app/images  # Directory for saving images
+    working_dir: /usr/src/app  # Set the working directory to where `scrapy.cfg` resides
+    depends_on:
+      - db
+    networks:
+      - hotel_network
+    command: scrapy crawl random_city_hotels_crawl_scraper  # Run the Scrapy spider on container start
+    environment:
+      - POSTGRESQL_URI=postgresql://Marjia:Marjia029@db:5432/trip
+
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: Marjia
+      POSTGRES_PASSWORD: Marjia029
+      POSTGRES_DB: trip
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - hotel_network
+    ports:
+      - "5432:5432"
+
+  pgadmin:
+    image: dpage/pgadmin4
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "5050:80"  # Port mapping for pgAdmin
+    networks:
+      - hotel_network
+    depends_on:
+      - db
+
+volumes:
+  postgres_data:
+
+networks:
+  hotel_network:
