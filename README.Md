@@ -62,7 +62,7 @@ Make sure you have a stable internet connection to download Docker images and de
     ```
 4. **Go to project Directory**
     ```bash
-    cd scraing
+    cd scraping
     ```
 5. **Build Docker containers**
 
