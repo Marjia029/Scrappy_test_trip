@@ -21,7 +21,7 @@ ENV SCRAPY_SETTINGS_MODULE=scraping.settings
 ENV PYTHONPATH="/app:/app/scraping"
 
 # Create directories for images and logs
-RUN mkdir -p /app/images /app/logs
+RUN mkdir -p /app/images /app/logs && chmod 777 /app/images
 
 # Command to run the spider
 CMD ["scrapy", "crawl", "random_city_hotels_crawl_scraper"]

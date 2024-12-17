@@ -11,3 +11,4 @@ class HotelItem(scrapy.Item):
     longitude = scrapy.Field()
     room_type = scrapy.Field()
     image = scrapy.Field()
+    image_local_path = scrapy.Field()  # Add this field for local image path
