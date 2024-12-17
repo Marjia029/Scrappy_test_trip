@@ -2,9 +2,9 @@ services:
   scraper:
     build: .
     volumes:
-      - .:/usr/src/app                # Mount the entire project directory
-      - ./images:/usr/src/app/images  # Ensure images are saved in the host's 'images' folder
-    working_dir: /usr/src/app
+      - .:/app
+      - ./images:/app/images
+    working_dir: /app
     depends_on:
       - db
     networks:

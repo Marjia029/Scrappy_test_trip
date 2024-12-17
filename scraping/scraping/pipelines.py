@@ -1,103 +1,147 @@
 import os
-from scrapy.pipelines.images import ImagesPipeline
+from pathlib import Path
+import scrapy
 from urllib.parse import urlparse
-from scrapy import Request
-from sqlalchemy import Column, String, Float, Integer, create_engine
+from sqlalchemy import create_engine, Column, Integer, String, Float
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
+from scrapy.pipelines.images import ImagesPipeline
+from itemadapter import ItemAdapter
 
-# Define the database model
+# Define SQLAlchemy Base
 Base = declarative_base()
 
+# Define the Hotel model directly in pipelines.py
 class Hotel(Base):
     __tablename__ = 'hotels'
+    
+    id = Column(Integer, primary_key=True)
+    city_name = Column(String)
+    property_title = Column(String)
+    hotel_id = Column(String)
+    price = Column(String)
+    rating = Column(Float)
+    address = Column(String)
+    latitude = Column(Float)
+    longitude = Column(Float)
+    room_type = Column(String)
+    image_path = Column(String)
+    image_url = Column(String)
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    city_name = Column(String, nullable=True)
-    property_title = Column(String, nullable=True)
-    hotel_id = Column(String, nullable=True)
-    price = Column(String, nullable=True)
-    rating = Column(String, nullable=True)
-    address = Column(String, nullable=True)
-    latitude = Column(Float, nullable=True)
-    longitude = Column(Float, nullable=True)
-    room_type = Column(String, nullable=True)
-    image_path = Column(String, nullable=True)
+    def __repr__(self):
+        return f"<Hotel(city_name={self.city_name}, property_title={self.property_title})>"
 
 
-# Database Pipeline
-class DatabasePipeline:
+# Image Download Pipeline
+class HotelImagesPipeline(ImagesPipeline):
+    def get_media_requests(self, item, info):
+        # Check if image URL exists and is not empty
+        image_url = item.get('image')
+        if image_url and image_url.strip():
+            yield scrapy.Request(image_url, meta={'item': item})
+
+    def file_path(self, request, response=None, info=None, item=None):
+        # Ensure the 'images' directory exists
+        Path('/app/images').mkdir(parents=True, exist_ok=True)
+
+        # Extract the filename from the URL
+        parsed_url = urlparse(request.url)
+        image_name = os.path.basename(parsed_url.path)
+
+        # Sanitize the filename
+        safe_name = "".join(c for c in image_name if c.isalnum() or c in ('.', '_')).rstrip()
+
+        # Use a default filename if the name is empty
+        if not safe_name:
+            safe_name = 'hotel_image.jpg'
+
+        return os.path.join('images', safe_name)
+
+    def item_completed(self, results, item, info):
+        # Use ItemAdapter to handle both Scrapy Item and dict
+        adapter = ItemAdapter(item)
+
+        # Check if image was downloaded successfully
+        for success, result in results:
+            if success:
+                # Update item with image path
+                image_path = result['path']
+                adapter['image_path'] = image_path
+                adapter['image_url'] = result.get('url', '')
+            else:
+                # Log any download failures
+                info.spider.logger.warning(f"Image download failed for item: {item}")
+
+        return item
+
+    
+
+# PostgreSQL Pipeline
+class PostgreSQLPipeline:
     def __init__(self, postgresql_uri):
-        self.postgresql_uri = postgresql_uri
-        self.engine = None
-        self.Session = None
+        # Set up SQLAlchemy engine and session
+        self.engine = create_engine(postgresql_uri)
+        
+        # Drop existing table (if it exists)
+        Base.metadata.drop_all(self.engine, tables=[Hotel.__table__])
+        
+        # Create tables
+        Base.metadata.create_all(self.engine)
+        
+        # Create session
+        Session = sessionmaker(bind=self.engine)
+        self.session = Session()
 
     @classmethod
     def from_crawler(cls, crawler):
-        return cls(
-            postgresql_uri=crawler.settings.get('POSTGRESQL_URI', 'postgresql://Marjia:Marjia029@localhost:5432/trip')
-        )
-
-    def open_spider(self, spider):
-        self.engine = create_engine(self.postgresql_uri)
-        Base.metadata.create_all(self.engine)
-        self.Session = sessionmaker(bind=self.engine)
-
-    def close_spider(self, spider):
-        if self.engine:
-            self.engine.dispose()
+        postgresql_uri = crawler.settings.get('POSTGRESQL_URI')
+        return cls(postgresql_uri)
 
     def process_item(self, item, spider):
-        session = self.Session()
+        # Ensure all required fields are present
         try:
+            # Convert rating to float, defaulting to None if not possible
+            rating = None
+            try:
+                rating = float(item.get('rating')) if item.get('rating') else None
+            except (TypeError, ValueError):
+                spider.logger.warning(f"Could not convert rating to float: {item.get('rating')}")
+
+            # Convert latitude and longitude to float, defaulting to None if not possible
+            latitude = None
+            longitude = None
+            try:
+                latitude = float(item.get('latitude')) if item.get('latitude') else None
+                longitude = float(item.get('longitude')) if item.get('longitude') else None
+            except (TypeError, ValueError):
+                spider.logger.warning(f"Could not convert coordinates to float. Latitude: {item.get('latitude')}, Longitude: {item.get('longitude')}")
+
+            # Save the item to the database
             hotel = Hotel(
-                city_name=item.get('city_name'),
-                property_title=item.get('property_title'),
-                hotel_id=item.get('hotel_id'),
-                price=item.get('price'),
-                rating=item.get('rating'),
-                address=item.get('address'),
-                latitude=float(item.get('latitude')) if item.get('latitude') else None,
-                longitude=float(item.get('longitude')) if item.get('longitude') else None,
-                room_type=item.get('room_type'),
-                image_path=item.get('image_local_path')  # Image path saved
+                city_name=str(item.get('city_name', '')),
+                property_title=str(item.get('property_title', '')),
+                hotel_id=str(item.get('hotel_id', '')),
+                price=str(item.get('price', '')),
+                rating=rating,
+                address=str(item.get('address', '')),
+                latitude=latitude,
+                longitude=longitude,
+                room_type=str(item.get('room_type', '')),
+                image_path=str(item.get('image_path', '')),
+                image_url=str(item.get('image', ''))
             )
-            session.add(hotel)
-            session.commit()
+            
+            # Add and commit the hotel
+            self.session.add(hotel)
+            self.session.commit()
+            
+            return item
+        
         except Exception as e:
             spider.logger.error(f"Error processing item: {e}")
-            session.rollback()
-        finally:
-            session.close()
-        return item
+            self.session.rollback()
+            raise
 
-
-# Images Pipeline
-class HotelImagesPipeline(ImagesPipeline):
-    def file_path(self, request, response=None, info=None, item=None):
-        # Get the hotel_id and city_name from the item for organizing images
-        hotel_id = item.get('hotel_id', 'unknown_id')  # Fallback if hotel_id missing
-        city_name = item.get('city_name', 'unknown_city').lower().replace(' ', '_')
-        
-        # Get the image file extension, default to .jpg if not available
-        ext = os.path.splitext(urlparse(request.url).path)[1] or '.jpg'
-        
-        # Log the file path for debugging purposes
-        self.logger.info(f"Saving image for hotel {hotel_id} in city {city_name} as {city_name}/{hotel_id}{ext}")
-
-        # Return the file path where the image will be saved
-        return f'{city_name}/{hotel_id}{ext}'
-
-    def get_media_requests(self, item, info):
-        # Check if image URL exists in the item and yield the request for the image
-        if item.get('image'):
-            yield Request(item['image'])
-
-    def item_completed(self, results, item, info):
-        # Check if image download is successful and update the image_local_path field
-        image_paths = [x['path'] for ok, x in results if ok]
-        if image_paths:
-            item['image_local_path'] = image_paths[0]  # Set the local image path
-        else:
-            item['image_local_path'] = None
-        return item
+    def close_spider(self, spider):
+        # Close the database session
+        self.session.close()

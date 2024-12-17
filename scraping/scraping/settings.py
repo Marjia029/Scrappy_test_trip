@@ -22,18 +22,17 @@ AUTOTHROTTLE_TARGET_CONCURRENCY = 1.0
 # Database Configuration
 POSTGRESQL_URI = 'postgresql://Marjia:Marjia029@db:5432/trip'
 
-# Item Pipelines
+# Enable the images pipeline
 ITEM_PIPELINES = {
     'scraping.pipelines.HotelImagesPipeline': 300,
-    'scraping.pipelines.DatabasePipeline': 800,
+    'scraping.pipelines.PostgreSQLPipeline': 800,
 }
 
-# Images storage settings (Absolute path to images folder)
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-IMAGES_STORE = '/app/images'  # Absolute path for images folder
-IMAGES_URLS_FIELD = 'image'
-IMAGES_RESULT_FIELD = 'image_local_path'
+# Set the location for saving images
+IMAGES_STORE = '/app/images'  # Absolute path inside the container
 
-# Advanced Reactor and Encoding Settings
+# Enable logging for debugging
+LOG_LEVEL = 'DEBUG'
+
 TWISTED_REACTOR = "twisted.internet.asyncioreactor.AsyncioSelectorReactor"
 FEED_EXPORT_ENCODING = "utf-8"
